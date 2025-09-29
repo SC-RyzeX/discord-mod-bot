@@ -9,6 +9,7 @@ intents.members = True
 
 load_dotenv()                     
 TOKEN = os.getenv("TOKEN")        
+warnings = {}
 
    
 
@@ -37,6 +38,61 @@ async def kick(ctx, member: discord.Member, *, reason="No reason"):
         await ctx.send(f"👢 Kicked {member} | Reason: {reason}")
     else:
         await ctx.send("You don't have permission to do that.")
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: discord.Member, *, reason="No reason provided"):
+    try:
+        await member.ban(reason=reason)
+        await ctx.send(f"🔨 {member.mention} was **banned** | Reason: {reason}")
+    except Exception as e:
+        await ctx.send(f"❌ Could not ban {member.name}. Error: {e}")
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def mute(ctx, member: discord.Member, *, reason="No reason provided"):
+    role = discord.utils.get(ctx.guild.roles, name="Mutd")
+    if not role:
+        return await ctx.send("⚠️ No 'Mutd' role found. Create one first.")
+    try:
+        await member.add_roles(role, reason=reason)
+        await ctx.send(f"🔇 {member.mention} was muted | Reason: {reason}")
+    except Exception as e:
+        await ctx.send(f"❌ Could not mute {member.name}. Error: {e}")
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def unmute(ctx, member: discord.Member):
+    role = discord.utils.get(ctx.guild.roles, name="Mutd")
+    if not role:
+        return await ctx.send("⚠️ No 'Mutd' role found.")
+    try:
+        await member.remove_roles(role)
+        await ctx.send(f"🔊 {member.mention} was unmuted.")
+    except Exception as e:
+        await ctx.send(f"❌ Could not unmute {member.name}. Error: {e}")
+
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def purge(ctx, amount: int):
+    deleted = await ctx.channel.purge(limit=amount + 1)
+    await ctx.send(f"🧹 Deleted {len(deleted) - 1} messages.", delete_after=5)
+    
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def warn(ctx, member: discord.Member, *, reason="No reason provided"):
+    if member.id not in warnings:
+        warnings[member.id] = []
+    warnings[member.id].append(reason)
+    await ctx.send(f"⚠️ {member.mention} has been **warned** | Reason: {reason}")
+
+@bot.command()
+async def warnings_list(ctx, member: discord.Member):
+    user_warnings = warnings.get(member.id, [])
+    if not user_warnings:
+        await ctx.send(f"✅ {member.mention} has no warnings.")
+    else:
+        warning_list = "\n".join([f"{i+1}. {w}" for i, w in enumerate(user_warnings)])
+        await ctx.send(f"⚠️ {member.mention} warnings:\n{warning_list}")
+
 
 autorole_name = "Agent"  # role name
 
